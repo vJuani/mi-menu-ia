@@ -28,6 +28,12 @@ export function Plan() {
   }
 
   function mealMenu(meal: PlannedMeal, name: string) {
+    if (meal.leftoverOf) {
+      return sheet(name, 'Almuerzo con las sobras de la cena anterior. Para cambiarlo, cambiá esa cena.', [
+        { text: 'Ver receta', onPress: () => go(`receta/${meal.recipeId}`, { mealId: meal.id }) },
+        { text: 'Ir a la cena', onPress: () => go(`receta/${meal.recipeId}`, { mealId: meal.leftoverOf }) },
+      ]);
+    }
     sheet(name, SLOT_LABEL[meal.slot], [
       { text: 'Ver receta', onPress: () => go(`receta/${meal.recipeId}`, { mealId: meal.id }) },
       { text: meal.forOffice ? 'Quitar vianda' : 'Marcar como vianda', onPress: () => commit((r) => r.saveMeal({ ...meal, forOffice: !meal.forOffice || undefined })) },
@@ -51,18 +57,21 @@ export function Plan() {
         <Card tone={date === todayISO ? 'primary' : undefined}>
           <button class="link bold" onClick={() => { setDay(date); setView('dia'); }}>{dayLabel(date, { weekday: 'long', day: 'numeric' })}</button>
           {SLOTS.map((slot) => {
-            const meal = data.meals.find((m) => m.date === date && m.slot === slot);
-            const r = meal ? data.recipes.get(meal.recipeId) : undefined;
-            if (!meal || !r) return <div class="plan-slot empty" onClick={() => go('cambiar/nuevo', { date, slot })}><span class="muted small">{SLOT_LABEL[slot]}</span><span class="muted small">＋ agregar</span></div>;
-            return (
-              <div class="plan-slot" onClick={() => mealMenu(meal, r.name)}>
-                <DishImage recipe={r} size={40} />
-                <div class="grow">
-                  <Body small muted>{SLOT_LABEL[slot]}{meal.forOffice ? ' · 🥡' : ''}{meal.status !== 'planificada' ? ` · ${meal.status}` : ''}</Body>
-                  <Body>{r.name}</Body>
+            const slotMeals = data.meals.filter((m) => m.date === date && m.slot === slot && data.recipes.get(m.recipeId));
+            if (!slotMeals.length) return <div class="plan-slot empty" onClick={() => go('cambiar/nuevo', { date, slot })}><span class="muted small">{SLOT_LABEL[slot]}</span><span class="muted small">＋ agregar</span></div>;
+            return slotMeals.map((meal) => {
+              const r = data.recipes.get(meal.recipeId)!;
+              const who = meal.memberIds.length < data.members.filter((m) => m.kind === 'adulto').length ? ` · ${meal.memberIds.map((id) => data.members.find((m) => m.id === id)?.shortName ?? id).join(', ')}` : '';
+              return (
+                <div class="plan-slot" onClick={() => mealMenu(meal, r.name)}>
+                  <DishImage recipe={r} size={40} />
+                  <div class="grow">
+                    <Body small muted>{SLOT_LABEL[slot]}{who}{meal.leftoverOf ? ' · 🥡 sobras' : meal.forOffice ? ' · 🥡' : ''}{meal.extraPortions ? ' · cociná el doble' : ''}{meal.status !== 'planificada' ? ` · ${meal.status}` : ''}</Body>
+                    <Body>{r.name}</Body>
+                  </div>
                 </div>
-              </div>
-            );
+              );
+            });
           })}
         </Card>
       ))}

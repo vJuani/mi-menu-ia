@@ -8,7 +8,7 @@ import { evaluateRecipeForBaby } from '../src/domain/babySafety.ts';
 import { buildAdultVersion } from '../src/domain/adaptations.ts';
 import type { Recipe } from '../src/domain/types.ts';
 import { openNodeDb } from './nodeDriver.ts';
-import { migrate, MIGRATIONS } from '../src/data/migrations.ts';
+import { migrate, MIGRATIONS, SCHEMA_VERSION } from '../src/data/migrations.ts';
 import { Repo } from '../src/data/repo.ts';
 import { seedBase, seedDemo } from '../src/data/seed.ts';
 import { babyCtx, ingredients, recipes, TOLERATED, yo } from './helpers.ts';
@@ -168,7 +168,7 @@ describe('Recetas propias en SQLite', () => {
     await db.run("INSERT INTO ingredients(id,name,category,default_unit) VALUES('pollo','Pollo','pollo','g')");
     await db.run("INSERT INTO recipes(id,name,total_minutes,difficulty,servings) VALUES('r1','Vieja',10,'facil',2)");
     const res = await migrate(db);
-    assert.deepEqual(res, { from: 2, to: 3 });
+    assert.deepEqual(res, { from: 2, to: SCHEMA_VERSION });
     const r = (await new Repo(db).recipes())[0];
     assert.equal(r.name, 'Vieja');
     assert.equal(r.archived, undefined);

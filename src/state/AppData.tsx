@@ -17,6 +17,8 @@ import { DEFAULT_REMINDER_SETTINGS } from '../domain/reminders';
 import type { ReminderSettings } from '../domain/reminders';
 import { syncNotifications } from '../services/notifications';
 import { addDays } from '../domain/planner';
+import { DEFAULT_LEFTOVER_CONFIG, planLeftoverLunches } from '../domain/leftovers';
+import type { LeftoverConfig } from '../domain/leftovers';
 
 export interface Snapshot {
   members: Member[];
@@ -84,7 +86,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
   const syncing = useRef(false);
 
   const afterChange = useCallback(async (r: Repo) => {
-    const snap = await load(r);
+    let snap = await load(r);
+    // Almuerzo = cena del día anterior (misma lógica que la versión web).
+    const cfg = { ...DEFAULT_LEFTOVER_CONFIG, ...(await r.getSetting<Partial<LeftoverConfig>>('plan.leftovers', {})) };
+    const lo = planLeftoverLunches(snap.meals, cfg, localToday());
+    if (lo.upserts.length || lo.deletes.length) {
+      await r.db.transaction(async () => { for (const id of lo.deletes) await r.deleteMeal(id); for (const m of lo.upserts) await r.saveMeal(m); });
+      snap = await load(r);
+    }
     setData(snap);
     if (syncing.current) return;
     syncing.current = true;

@@ -4,7 +4,7 @@ import { openWebDb } from './driver.ts';
 import { migrate } from '../../src/data/migrations.ts';
 import { Repo } from '../../src/data/repo.ts';
 import { seedBase } from '../../src/data/seed.ts';
-import { AppCtx, loadSnapshot, localToday, syncShopping } from './state.tsx';
+import { AppCtx, loadSnapshot, localToday, syncLeftovers, syncShopping } from './state.tsx';
 import type { Ctx, Snapshot } from './state.tsx';
 import { Header, SheetHost, TabBar, useRoute, go } from './ui.tsx';
 import { Hoy } from './screens/hoy.tsx';
@@ -38,6 +38,7 @@ function App({ repo, initial }: { repo: Repo; initial: Snapshot }) {
   const commit = useCallback(async (fn?: (r: Repo) => Promise<unknown>) => {
     if (fn) await fn(repo);
     let snap = await loadSnapshot(repo);
+    if (await syncLeftovers(repo, snap)) snap = await loadSnapshot(repo);
     await syncShopping(repo, snap);
     snap = await loadSnapshot(repo);
     setData(snap);
@@ -93,6 +94,7 @@ async function boot() {
     const repo = new Repo(db);
     await seedBase(repo);
     let snap = await loadSnapshot(repo);
+    if (await syncLeftovers(repo, snap)) snap = await loadSnapshot(repo);
     await syncShopping(repo, snap);
     snap = await loadSnapshot(repo);
     root.innerHTML = '';

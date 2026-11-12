@@ -266,10 +266,11 @@ export class Repo {
   // ---------- Plan ----------
   async saveMeal(m: PlannedMeal, isDemo = false): Promise<void> {
     await this.db.run(
-      `INSERT INTO planned_meals(id,date,slot,recipe_id,member_ids_json,portions_json,for_office,status,substitutions_json,is_demo) VALUES(?,?,?,?,?,?,?,?,?,?)
+      `INSERT INTO planned_meals(id,date,slot,recipe_id,member_ids_json,portions_json,for_office,status,substitutions_json,is_demo,leftover_of,extra_portions_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
        ON CONFLICT(id) DO UPDATE SET date=excluded.date, slot=excluded.slot, recipe_id=excluded.recipe_id, member_ids_json=excluded.member_ids_json,
-       portions_json=excluded.portions_json, for_office=excluded.for_office, status=excluded.status, substitutions_json=excluded.substitutions_json`,
-      [m.id, m.date, m.slot, m.recipeId, json.enc(m.memberIds), json.enc(m.portionsByMember), b(m.forOffice), m.status, json.enc(m.substitutions), b(isDemo)],
+       portions_json=excluded.portions_json, for_office=excluded.for_office, status=excluded.status, substitutions_json=excluded.substitutions_json,
+       leftover_of=excluded.leftover_of, extra_portions_json=excluded.extra_portions_json`,
+      [m.id, m.date, m.slot, m.recipeId, json.enc(m.memberIds), json.enc(m.portionsByMember), b(m.forOffice), m.status, json.enc(m.substitutions), b(isDemo), m.leftoverOf ?? null, json.enc(m.extraPortions ?? {})],
     );
   }
   async meals(fromISO?: string, toISO?: string): Promise<PlannedMeal[]> {
@@ -282,6 +283,8 @@ export class Repo {
       id: String(r.id), date: String(r.date), slot: r.slot as PlannedMeal['slot'], recipeId: String(r.recipe_id),
       memberIds: json.dec(r.member_ids_json, []), portionsByMember: json.dec(r.portions_json, {}), forOffice: bool(r.for_office) || undefined,
       status: r.status as PlannedMeal['status'], substitutions: json.dec(r.substitutions_json, {}),
+      leftoverOf: str(r.leftover_of),
+      extraPortions: (() => { const e = json.dec<Record<string, number>>(r.extra_portions_json, {}); return Object.keys(e).length ? e : undefined; })(),
     }));
   }
   async deleteMeal(id: string): Promise<void> {

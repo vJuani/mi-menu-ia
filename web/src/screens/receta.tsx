@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'preact/hooks';
 import { useApp } from '../state.tsx';
-import { Body, Button, Card, Chip, DishImage, H2, Notice, Row, Screen, Stepper, go, sheet, alertMsg } from '../ui.tsx';
+import { Body, Button, Card, Chip, DishHero, H2, Notice, Row, Screen, Stepper, go, sheet, alertMsg } from '../ui.tsx';
+import { extraPortionsNote } from '../../../src/domain/leftovers.ts';
 import { buildFamilyVersions } from '../../../src/domain/adaptations.ts';
 import type { MemberVersion } from '../../../src/domain/adaptations.ts';
 import { proposeSafeBabyAlternative, TEXTURE_LABEL } from '../../../src/domain/babySafety.ts';
@@ -17,7 +18,10 @@ export function Receta({ id, mealId }: { id: string; mealId?: string }) {
   const [tab, setTab] = useState<'receta' | 'ingredientes' | 'nutricion'>('receta');
   const [scale, setScale] = useState(1);
   const eaters = data.members.filter((m) => (meal ? meal.memberIds.includes(m.id) || m.kind === 'bebe' : true));
-  const portions = meal?.portionsByMember ?? Object.fromEntries(data.members.map((m) => [m.id, 1]));
+  const basePortions = meal?.portionsByMember ?? Object.fromEntries(data.members.map((m) => [m.id, 1]));
+  // Las porciones extra (almuerzo de mañana) se cocinan ahora: se suman a cada versión.
+  const portions = Object.fromEntries(Object.entries(basePortions).map(([k, v]) => [k, v + (meal?.extraPortions?.[k] ?? 0)]));
+  const dinner = meal?.leftoverOf ? data.meals.find((m) => m.id === meal.leftoverOf) : undefined;
   const subs = meal?.substitutions ?? {};
   const family = useMemo(() => (recipe ? buildFamilyVersions(recipe, eaters, Object.fromEntries(Object.entries(portions).map(([k, v]) => [k, v * scale])), data.ingredients, data.babyCtx, subs) : null), [recipe, data, scale, mealId]);
   const missing = useMemo(() => (recipe && meal ? computeShoppingList([meal], data.recipes, data.members, data.ingredients, data.lots) : []), [recipe, meal, data]);
@@ -89,14 +93,18 @@ export function Receta({ id, mealId }: { id: string; mealId?: string }) {
     <Screen>
       <Row between><span /><button class="link bold" onClick={actions}>Editar ⋯</button></Row>
       {recipe.archived ? <Notice>Receta archivada: no se propone en el plan.</Notice> : null}
-      <div class="meal-row">
-        <DishImage recipe={recipe} size={88} />
-        <div class="grow">
-          <h1 class="h1-small">{recipe.name}</h1>
-          <Body small muted>⏱ {recipe.totalMinutes} min · {DIFFICULTY_LABEL[recipe.difficulty]} · {family.versions.length} versiones</Body>
-        </div>
+      <DishHero recipe={recipe} caption={recipe.imageUri ? 'Tu foto' : 'Así tiene que quedar (ilustración)'} />
+      <div>
+        <h1 class="h1-small">{recipe.name}</h1>
+        <Body small muted>⏱ {recipe.totalMinutes} min · {DIFFICULTY_LABEL[recipe.difficulty]} · {family.versions.length} versiones</Body>
       </div>
-      {missing.length ? <Notice>Faltan: {missing.map((l) => `${l.name} (${formatQty(l.toBuy, l.unit)})`).join(', ')}</Notice> : meal ? <Notice tone="primary">Tenés todos los ingredientes.</Notice> : null}
+      {meal?.leftoverOf ? (
+        <Notice tone="primary">🥡 <b>Sobras de la cena{dinner ? ` del ${new Date(dinner.date + 'T12:00:00').toLocaleDateString('es-AR', { weekday: 'long' })}` : ' de ayer'}</b>: no hay que cocinar ni comprar nada. Recalentalo bien hasta que humee (74 °C en el centro) y consumilo dentro de los 3 días.</Notice>
+      ) : null}
+      {meal && extraPortionsNote(meal, new Map(data.members.map((m) => [m.id, m.shortName ?? m.name]))) ? (
+        <Notice tone="primary">🍳 {extraPortionsNote(meal, new Map(data.members.map((m) => [m.id, m.shortName ?? m.name])))}</Notice>
+      ) : null}
+      {meal?.leftoverOf ? null : missing.length ? <Notice>Faltan: {missing.map((l) => `${l.name} (${formatQty(l.toBuy, l.unit)})`).join(', ')}</Notice> : meal ? <Notice tone="primary">Tenés todos los ingredientes.</Notice> : null}
       <div class="segmented">
         {(['receta', 'ingredientes', 'nutricion'] as const).map((t) => <Chip label={{ receta: 'Receta', ingredientes: 'Ingredientes', nutricion: 'Nutrición' }[t]} active={tab === t} onPress={() => setTab(t)} />)}
       </div>
@@ -177,10 +185,10 @@ export function Receta({ id, mealId }: { id: string; mealId?: string }) {
         </>
       )}
 
-      <Button title="Empezar a cocinar" icon="👨‍🍳" onPress={() => go(`cocina/${recipe.id}`, { mealId: meal?.id, scale: String(scale) })} />
+      {meal?.leftoverOf ? null : <Button title="Empezar a cocinar" icon="👨‍🍳" onPress={() => go(`cocina/${recipe.id}`, { mealId: meal?.id, scale: String(scale) })} />}
       {meal ? (
         <div class="grid2">
-          <Button small kind="secondary" title="Cambiar comida" onPress={() => go(`cambiar/${meal.id}`)} />
+          <Button small kind="secondary" title={meal.leftoverOf ? 'Ver la cena' : 'Cambiar comida'} onPress={() => (meal.leftoverOf ? go(`receta/${recipe.id}`, { mealId: meal.leftoverOf }) : go(`cambiar/${meal.id}`))} />
           <Button small kind="secondary" title="Ya comí" onPress={ateIt} />
         </div>
       ) : null}

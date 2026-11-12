@@ -62,7 +62,7 @@ export function Hoy() {
           <Card tone={done ? 'primary' : undefined} onPress={() => go(`receta/${r.id}`, { mealId: meal.id })} cls="meal-row">
             <DishImage recipe={r} />
             <div class="grow">
-              <Body small muted>{SLOT_LABEL[meal.slot]} · {data.reminderSettings.mealTimes[meal.slot]}{meal.forOffice ? ' · 🥡 vianda' : ''}</Body>
+              <Body small muted>{SLOT_LABEL[meal.slot]} · {data.reminderSettings.mealTimes[meal.slot]}{meal.leftoverOf ? ' · 🥡 sobras de anoche' : meal.forOffice ? ' · 🥡 vianda' : ''}{meal.extraPortions ? ' · cociná el doble' : ''}</Body>
               <Body bold>{r.name}</Body>
               <Body small muted>{r.totalMinutes} min · {DIFFICULTY_LABEL[r.difficulty]}</Body>
             </div>

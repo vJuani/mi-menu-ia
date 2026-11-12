@@ -1,6 +1,8 @@
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
-import { dishEmojiFor } from './util.ts';
+import { dishDataUri } from '../../src/art/dishArt.ts';
+import type { Ingredient, Recipe } from '../../src/domain/types.ts';
+import { useApp } from './state.tsx';
 
 // ---------- Router (hash) ----------
 export interface Route { path: string[]; params: Record<string, string>; }
@@ -121,9 +123,27 @@ export function Stepper({ value, onChange, step = 1, min = 0, suffix }: { value:
 export function Notice({ tone = 'warning', children }: { tone?: 'warning' | 'danger' | 'baby' | 'primary'; children: ComponentChildren }) {
   return <div class={`notice tone-${tone}`}>{children}</div>;
 }
-export function DishImage({ recipe, size = 64 }: { recipe: { imageUri?: string; tags: string[]; name: string }; size?: number }) {
-  if (recipe.imageUri) return <img class="dish" src={recipe.imageUri} alt={recipe.name} style={{ width: `${size}px`, height: `${size}px` }} />;
-  return <div class="dish emoji" style={{ width: `${size}px`, height: `${size}px`, fontSize: `${size * 0.5}px` }}>{dishEmojiFor(recipe.tags, recipe.name)}</div>;
+const artCache = new Map<string, string>();
+/** Foto propia si existe; si no, ilustración generada a partir de los ingredientes. */
+export function dishSrc(recipe: Recipe, ingredients: Map<string, Ingredient>): string {
+  if (recipe.imageUri) return recipe.imageUri;
+  const key = `${recipe.id}|${recipe.name}|${recipe.ingredients.map((i) => `${i.ingredientId}${i.optional ? '?' : ''}`).join(',')}`;
+  let uri = artCache.get(key);
+  if (!uri) { uri = dishDataUri(recipe, ingredients); artCache.set(key, uri); }
+  return uri;
+}
+export function DishImage({ recipe, size = 64 }: { recipe: Recipe; size?: number }) {
+  const { data } = useApp();
+  return <img class="dish" src={dishSrc(recipe, data.ingredients)} alt={recipe.name} style={{ width: `${size}px`, height: `${size}px` }} />;
+}
+export function DishHero({ recipe, caption }: { recipe: Recipe; caption?: string }) {
+  const { data } = useApp();
+  return (
+    <figure class="hero">
+      <img src={dishSrc(recipe, data.ingredients)} alt={recipe.name} />
+      {caption ? <figcaption>{caption}</figcaption> : null}
+    </figure>
+  );
 }
 
 export function TabBar({ active }: { active: string }) {

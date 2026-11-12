@@ -34,6 +34,7 @@ export function needsForMeal(
   members: Member[],
   ingredients: Map<string, Ingredient>,
 ): Need[] {
+  if (meal.leftoverOf) return []; // sobras: lo que se usa ya se cocinó (y compró) en la cena
   const acc = new Map<string, number>();
   const add = (id: string, qty: number, unit: Unit) => {
     const ing = ingredients.get(id);
@@ -44,7 +45,7 @@ export function needsForMeal(
     acc.set(id, (acc.get(id) ?? 0) + q);
   };
   for (const m of members.filter((x) => meal.memberIds.includes(x.id))) {
-    const portion = meal.portionsByMember[m.id] ?? 1;
+    const portion = (meal.portionsByMember[m.id] ?? 1) + (meal.extraPortions?.[m.id] ?? 0);
     if (m.kind === 'bebe') {
       for (const ri of recipe.ingredients) {
         if (ri.optional || ri.addedAfterBabySplit) continue;

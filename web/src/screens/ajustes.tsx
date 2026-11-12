@@ -9,6 +9,7 @@ import type { MealSlot, Reminder } from '../../../src/domain/types.ts';
 import { remindersToIcs } from '../calendar.ts';
 import { SLOT_LABEL, num } from '../util.ts';
 import { APP_NAME } from '../../../src/config/app.ts';
+import type { LeftoverConfig } from '../../../src/domain/leftovers.ts';
 
 const KIND_LABEL: Record<Reminder['kind'], string> = { faltantes: 'Faltantes para mañana', descongelar: 'Sacar del freezer', vianda: 'Preparar vianda', empezar_cocina: 'Empezar a cocinar', stock_bajo: 'Stock bajo', peso: 'Registrar peso' };
 const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -18,6 +19,12 @@ export function Ajustes() {
   const { data, repo, commit } = useApp();
   const [s, setS] = useState<ReminderSettings>(data.reminderSettings);
   const set = (p: Partial<ReminderSettings>) => setS((x) => ({ ...x, ...p }));
+  const [lo, setLo] = useState<LeftoverConfig>(data.leftoverCfg);
+  const adults = data.members.filter((m) => m.kind === 'adulto');
+  async function saveLeftovers(next: LeftoverConfig) {
+    setLo(next);
+    await commit((r) => r.setSetting('plan.leftovers', next));
+  }
   const stocked = [...new Set(data.lots.map((l) => l.ingredientId))].map((id) => data.ingredients.get(id)!).filter(Boolean);
 
   async function save() {
@@ -50,6 +57,18 @@ export function Ajustes() {
       {(['desayuno', 'almuerzo', 'merienda', 'cena', 'colacion'] as MealSlot[]).map((slot) => (
         <Row between><Body>{SLOT_LABEL[slot]}</Body><div class="w110"><Field type="time" value={s.mealTimes[slot]} onChange={(v) => set({ mealTimes: { ...s.mealTimes, [slot]: v } })} /></div></Row>
       ))}
+
+      <H2>Almuerzo = cena del día anterior</H2>
+      <Toggle label="Cocinar el doble a la noche y almorzar las sobras" hint="La cena suma una porción por persona y el almuerzo del día siguiente queda vinculado: no se cocina ni se compra aparte." value={lo.enabled} onChange={(v) => saveLeftovers({ ...lo, enabled: v })} />
+      {lo.enabled ? (
+        <>
+          <Body small muted>¿Quiénes almuerzan las sobras?</Body>
+          <Row wrap>{adults.map((m) => <Chip label={m.shortName ?? m.name} active={lo.memberIds.includes(m.id)} onPress={() => saveLeftovers({ ...lo, memberIds: lo.memberIds.includes(m.id) ? lo.memberIds.filter((x) => x !== m.id) : [...lo.memberIds, m.id] })} />)}</Row>
+          <Body small muted>Días en que almorzás sobras</Body>
+          <Row wrap>{DAYS.map((d, i) => <Chip label={d} active={lo.weekdays.includes(i)} onPress={() => saveLeftovers({ ...lo, weekdays: lo.weekdays.includes(i) ? lo.weekdays.filter((x) => x !== i) : [...lo.weekdays, i] })} />)}</Row>
+          <Toggle label="Llevarlo a la oficina (lunes a viernes)" value={lo.forOffice} onChange={(v) => saveLeftovers({ ...lo, forOffice: v })} />
+        </>
+      ) : null}
 
       <H2>Recordatorios</H2>
       <Notice>En la versión web, iPhone no permite avisos con la app cerrada. Los recordatorios de las próximas 24 h aparecen en “Hoy”, y podés pasarlos a tu <b>Calendario</b> para recibir las alarmas.</Notice>

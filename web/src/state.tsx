@@ -8,6 +8,8 @@ import { computeShoppingList } from '../../src/domain/shopping.ts';
 import { DEFAULT_REMINDER_SETTINGS } from '../../src/domain/reminders.ts';
 import type { ReminderSettings } from '../../src/domain/reminders.ts';
 import { addDays } from '../../src/domain/planner.ts';
+import { DEFAULT_LEFTOVER_CONFIG, planLeftoverLunches } from '../../src/domain/leftovers.ts';
+import type { LeftoverConfig } from '../../src/domain/leftovers.ts';
 
 export interface Snapshot {
   members: Member[];
@@ -24,6 +26,7 @@ export interface Snapshot {
   reminderSettings: ReminderSettings;
   onboarded: boolean;
   lastWeighIn?: string;
+  leftoverCfg: LeftoverConfig;
 }
 
 export interface Ctx {
@@ -51,6 +54,7 @@ export async function loadSnapshot(repo: Repo): Promise<Snapshot> {
     repo.members(), repo.ingredients(), repo.recipes(), repo.lots(), repo.meals(addDays(localToday(), -35)),
     repo.getSetting<ReminderSettings>('reminders', DEFAULT_REMINDER_SETTINGS), repo.getSetting<boolean>('onboarded', false), repo.weights(),
   ]);
+  const leftoverCfg = { ...DEFAULT_LEFTOVER_CONFIG, ...(await repo.getSetting<Partial<LeftoverConfig>>('plan.leftovers', {})) };
   const baby = members.find((m) => m.kind === 'bebe');
   const babyProfile = baby ? await repo.babyProfile(baby.id) : null;
   const introductions = baby ? await repo.introductions(baby.id) : [];
@@ -58,9 +62,20 @@ export async function loadSnapshot(repo: Repo): Promise<Snapshot> {
   return {
     members, ingredients, ingredientList, recipes: new Map(all.map((r) => [r.id, r])), recipeList: all.filter((r) => !r.archived), allRecipes: all,
     lots, meals, babyProfile, introductions, reminderSettings: { ...DEFAULT_REMINDER_SETTINGS, ...reminderSettings }, onboarded,
-    lastWeighIn: weights.at(-1)?.date,
+    lastWeighIn: weights.at(-1)?.date, leftoverCfg,
     babyCtx: baby && babyProfile && baby.birthDate ? { profile: babyProfile, ageMonths: ageInMonths(baby.birthDate), introductions, ingredients } : undefined,
   };
+}
+
+/** Mantiene los almuerzos de sobras alineados con las cenas. Devuelve true si cambió algo. */
+export async function syncLeftovers(repo: Repo, s: Snapshot): Promise<boolean> {
+  const { upserts, deletes } = planLeftoverLunches(s.meals, s.leftoverCfg, localToday());
+  if (!upserts.length && !deletes.length) return false;
+  await repo.db.transaction(async () => {
+    for (const id of deletes) await repo.deleteMeal(id);
+    for (const m of upserts) await repo.saveMeal(m);
+  });
+  return true;
 }
 
 export async function syncShopping(repo: Repo, s: Snapshot): Promise<void> {

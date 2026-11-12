@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useApp } from '../state.tsx';
-import { Body, Button, Card, Notice, Row, Screen, Stepper, back, sheet } from '../ui.tsx';
+import { Body, Button, Card, DishHero, Notice, Row, Screen, Stepper, back, sheet } from '../ui.tsx';
 import { needsForMeal } from '../../../src/domain/shopping.ts';
 import { formatQty } from '../../../src/domain/units.ts';
 import type { Unit } from '../../../src/domain/types.ts';
@@ -67,6 +67,8 @@ export function Cocina({ id, mealId, scale }: { id: string; mealId?: string; sca
         {s.tip ? <Notice tone={s.babySplit ? 'baby' : 'warning'}>💡 {s.tip}</Notice> : null}
         {s.babySplit ? <Notice tone="baby">Separá la porción de Helena ahora, antes de sal o condimentos.</Notice> : null}
         {s.timerSec ? <Timer key={p.step} seconds={s.timerSec} /> : null}
+        {p.step === recipe.steps.length - 1 ? <DishHero recipe={recipe} caption="Así tiene que quedar" /> : null}
+        {p.step === recipe.steps.length - 1 && meal?.extraPortions ? <Notice tone="primary">🥡 Antes de servir, separá la porción del almuerzo de mañana en un táper. Dejala entibiar y llevala a la heladera dentro de las 2 horas.</Notice> : null}
         <button class="link bold" onClick={() => save({ ...p, done: p.done.includes(p.step) ? p.done.filter((d) => d !== p.step) : [...p.done, p.step] })}>{p.done.includes(p.step) ? '☑️ Hecho' : '⬜️ Marcar como hecho'}</button>
       </Card>
       <div class="grid-1-3">
@@ -125,7 +127,11 @@ function ConfirmUsage({ recipeId, mealId, scale, onDone }: { recipeId: string; m
   async function confirm() {
     setBusy(true);
     let res: { operationId: string; shortfalls: { ingredientId: string }[] } | undefined;
-    await commit(async (r) => { res = await r.confirmCooked(meal?.id ?? null, usages.filter((u) => u.qty > 0), data.ingredients); });
+    await commit(async (r) => {
+      res = await r.confirmCooked(meal?.id ?? null, usages.filter((u) => u.qty > 0), data.ingredients);
+      const extra = Object.values(meal?.extraPortions ?? {}).reduce((a, b) => a + b, 0);
+      if (meal && extra > 0) await r.addLeftover({ recipeId: recipe.id, plannedMealId: meal.id, description: `${recipe.name} — almuerzo de mañana`, portions: Math.round(extra * 10) / 10, location: 'heladera' });
+    });
     setBusy(false);
     if (res?.shortfalls.length) sheet('Atención', `No había suficiente stock registrado de: ${res.shortfalls.map((s) => data.ingredients.get(s.ingredientId)?.name).join(', ')}. Se descontó lo disponible.`, [{ text: 'OK', onPress: () => onDone(res!.operationId) }]);
     else if (res) onDone(res.operationId);

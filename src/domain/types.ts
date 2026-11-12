@@ -170,6 +170,10 @@ export interface PlannedMeal {
   memberIds: Id[];
   portionsByMember: Record<Id, number>; // multiplicador sobre 1 porción adulta
   forOffice?: boolean;
+  /** Si es un almuerzo de sobras: id de la cena de la que sale (no se cocina ni se compra aparte). */
+  leftoverOf?: Id;
+  /** Porciones extra que se cocinan para guardar (p. ej. el almuerzo de mañana). */
+  extraPortions?: Record<Id, number>;
   status: 'planificada' | 'cocinada' | 'comida' | 'salteada';
   /** Sustituciones aplicadas: ingrediente original -> reemplazo */
   substitutions: Record<Id, Id>;
