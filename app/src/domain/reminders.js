@@ -73,19 +73,21 @@ export function buildReminders(i) {
             }
         }
         // 3) Vianda para la oficina.
-        if (s.kinds.vianda && meal.forOffice) {
+        if (s.kinds.vianda && (meal.forOffice || meal.leftoverOf)) {
             out.push({
-                key: `vianda:${meal.id}`, kind: 'vianda', title: 'Vianda para mañana',
-                body: `Prepará ${recipe.name.toLowerCase()} para llevar a la oficina.`,
+                key: `vianda:${meal.id}`, kind: 'vianda', title: meal.leftoverOf ? 'Guardá tu almuerzo de mañana' : 'Vianda para mañana',
+                body: meal.leftoverOf
+                    ? `Separá tu porción de ${recipe.name.toLowerCase()} en un táper y llevala a la heladera${meal.forOffice ? ' para la oficina' : ''}.`
+                    : `Prepará ${recipe.name.toLowerCase()} para llevar a la oficina.`,
                 fireAt: at(addDays(meal.date, -1), s.officePrepAt), refId: meal.id,
             });
         }
         // 4) Empezar a cocinar.
-        if (s.kinds.empezar_cocina && !meal.forOffice && (meal.slot === 'almuerzo' || meal.slot === 'cena')) {
+        if (s.kinds.empezar_cocina && !meal.forOffice && !meal.leftoverOf && (meal.slot === 'almuerzo' || meal.slot === 'cena')) {
             out.push({
                 key: `empezar:${meal.id}`, kind: 'empezar_cocina',
                 title: `En ${s.cookLeadMinutes} minutos podés empezar ${SLOT_LABEL[meal.slot]}`,
-                body: `${recipe.name} · ${recipe.totalMinutes} min.`,
+                body: `${recipe.name} · ${recipe.totalMinutes} min.${meal.extraPortions ? ' Cociná el doble: hay almuerzo para mañana.' : ''}`,
                 fireAt: at(meal.date, mealTime, recipe.totalMinutes + s.cookLeadMinutes), refId: meal.id,
             });
         }

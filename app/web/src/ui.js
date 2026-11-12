@@ -1,6 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "preact/jsx-runtime";
 import { useEffect, useState } from 'preact/hooks';
-import { dishEmojiFor } from './util.js';
+import { dishDataUri } from '../../src/art/dishArt.js';
+import { useApp } from './state.js';
 export function parseHash(h = location.hash) {
     const raw = h.replace(/^#\/?/, '');
     const [p, q = ''] = raw.split('?');
@@ -86,10 +87,26 @@ export function Stepper({ value, onChange, step = 1, min = 0, suffix }) {
 export function Notice({ tone = 'warning', children }) {
     return _jsx("div", { class: `notice tone-${tone}`, children: children });
 }
-export function DishImage({ recipe, size = 64 }) {
+const artCache = new Map();
+/** Foto propia si existe; si no, ilustración generada a partir de los ingredientes. */
+export function dishSrc(recipe, ingredients) {
     if (recipe.imageUri)
-        return _jsx("img", { class: "dish", src: recipe.imageUri, alt: recipe.name, style: { width: `${size}px`, height: `${size}px` } });
-    return _jsx("div", { class: "dish emoji", style: { width: `${size}px`, height: `${size}px`, fontSize: `${size * 0.5}px` }, children: dishEmojiFor(recipe.tags, recipe.name) });
+        return recipe.imageUri;
+    const key = `${recipe.id}|${recipe.name}|${recipe.ingredients.map((i) => `${i.ingredientId}${i.optional ? '?' : ''}`).join(',')}`;
+    let uri = artCache.get(key);
+    if (!uri) {
+        uri = dishDataUri(recipe, ingredients);
+        artCache.set(key, uri);
+    }
+    return uri;
+}
+export function DishImage({ recipe, size = 64 }) {
+    const { data } = useApp();
+    return _jsx("img", { class: "dish", src: dishSrc(recipe, data.ingredients), alt: recipe.name, style: { width: `${size}px`, height: `${size}px` } });
+}
+export function DishHero({ recipe, caption }) {
+    const { data } = useApp();
+    return (_jsxs("figure", { class: "hero", children: [_jsx("img", { src: dishSrc(recipe, data.ingredients), alt: recipe.name }), caption ? _jsx("figcaption", { children: caption }) : null] }));
 }
 export function TabBar({ active }) {
     const tabs = [['hoy', '🏠', 'Hoy'], ['plan', '📅', 'Plan'], ['inventario', '🧺', 'Inventario'], ['asistente', '💬', 'Asistente'], ['mas', '☰', 'Más']];

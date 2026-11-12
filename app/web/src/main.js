@@ -5,7 +5,7 @@ import { openWebDb } from './driver.js';
 import { migrate } from '../../src/data/migrations.js';
 import { Repo } from '../../src/data/repo.js';
 import { seedBase } from '../../src/data/seed.js';
-import { AppCtx, loadSnapshot, localToday, syncShopping } from './state.js';
+import { AppCtx, loadSnapshot, localToday, syncLeftovers, syncShopping } from './state.js';
 import { Header, SheetHost, TabBar, useRoute, go } from './ui.js';
 import { Hoy } from './screens/hoy.js';
 import { Plan, Cambiar } from './screens/plan.js';
@@ -35,6 +35,8 @@ function App({ repo, initial }) {
         if (fn)
             await fn(repo);
         let snap = await loadSnapshot(repo);
+        if (await syncLeftovers(repo, snap))
+            snap = await loadSnapshot(repo);
         await syncShopping(repo, snap);
         snap = await loadSnapshot(repo);
         setData(snap);
@@ -110,6 +112,8 @@ async function boot() {
         const repo = new Repo(db);
         await seedBase(repo);
         let snap = await loadSnapshot(repo);
+        if (await syncLeftovers(repo, snap))
+            snap = await loadSnapshot(repo);
         await syncShopping(repo, snap);
         snap = await loadSnapshot(repo);
         root.innerHTML = '';

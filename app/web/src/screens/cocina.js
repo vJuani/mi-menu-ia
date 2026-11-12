@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "preact/jsx-runtime";
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { useApp } from '../state.js';
-import { Body, Button, Card, Notice, Row, Screen, Stepper, back, sheet } from '../ui.js';
+import { Body, Button, Card, DishHero, Notice, Row, Screen, Stepper, back, sheet } from '../ui.js';
 import { needsForMeal } from '../../../src/domain/shopping.js';
 import { formatQty } from '../../../src/domain/units.js';
 /** Mantiene la pantalla encendida mientras se cocina (si el navegador lo permite). */
@@ -61,7 +61,7 @@ export function Cocina({ id, mealId, scale }) {
     }
     const s = recipe.steps[Math.min(p.step, recipe.steps.length - 1)];
     const pct = (p.done.length / recipe.steps.length) * 100;
-    return (_jsxs(Screen, { children: [_jsxs(Body, { muted: true, children: [recipe.name, " \u00B7 Paso ", p.step + 1, " de ", recipe.steps.length, " \u00B7 el avance se guarda"] }), _jsx("div", { class: "progress", children: _jsx("div", { style: { width: `${pct}%` } }) }), _jsxs(Card, { tone: s.babySplit ? 'baby' : undefined, cls: "cook-card", children: [_jsx("p", { class: "cook-text", children: s.text }), s.tip ? _jsxs(Notice, { tone: s.babySplit ? 'baby' : 'warning', children: ["\uD83D\uDCA1 ", s.tip] }) : null, s.babySplit ? _jsx(Notice, { tone: "baby", children: "Separ\u00E1 la porci\u00F3n de Helena ahora, antes de sal o condimentos." }) : null, s.timerSec ? _jsx(Timer, { seconds: s.timerSec }, p.step) : null, _jsx("button", { class: "link bold", onClick: () => save({ ...p, done: p.done.includes(p.step) ? p.done.filter((d) => d !== p.step) : [...p.done, p.step] }), children: p.done.includes(p.step) ? '☑️ Hecho' : '⬜️ Marcar como hecho' })] }), _jsxs("div", { class: "grid-1-3", children: [_jsx(Button, { kind: "secondary", title: "\u2190", disabled: p.step === 0, onPress: () => save({ ...p, step: p.step - 1 }) }), p.step < recipe.steps.length - 1
+    return (_jsxs(Screen, { children: [_jsxs(Body, { muted: true, children: [recipe.name, " \u00B7 Paso ", p.step + 1, " de ", recipe.steps.length, " \u00B7 el avance se guarda"] }), _jsx("div", { class: "progress", children: _jsx("div", { style: { width: `${pct}%` } }) }), _jsxs(Card, { tone: s.babySplit ? 'baby' : undefined, cls: "cook-card", children: [_jsx("p", { class: "cook-text", children: s.text }), s.tip ? _jsxs(Notice, { tone: s.babySplit ? 'baby' : 'warning', children: ["\uD83D\uDCA1 ", s.tip] }) : null, s.babySplit ? _jsx(Notice, { tone: "baby", children: "Separ\u00E1 la porci\u00F3n de Helena ahora, antes de sal o condimentos." }) : null, s.timerSec ? _jsx(Timer, { seconds: s.timerSec }, p.step) : null, p.step === recipe.steps.length - 1 ? _jsx(DishHero, { recipe: recipe, caption: "As\u00ED tiene que quedar" }) : null, p.step === recipe.steps.length - 1 && meal?.extraPortions ? _jsx(Notice, { tone: "primary", children: "\uD83E\uDD61 Antes de servir, separ\u00E1 la porci\u00F3n del almuerzo de ma\u00F1ana en un t\u00E1per. Dejala entibiar y llevala a la heladera dentro de las 2 horas." }) : null, _jsx("button", { class: "link bold", onClick: () => save({ ...p, done: p.done.includes(p.step) ? p.done.filter((d) => d !== p.step) : [...p.done, p.step] }), children: p.done.includes(p.step) ? '☑️ Hecho' : '⬜️ Marcar como hecho' })] }), _jsxs("div", { class: "grid-1-3", children: [_jsx(Button, { kind: "secondary", title: "\u2190", disabled: p.step === 0, onPress: () => save({ ...p, step: p.step - 1 }) }), p.step < recipe.steps.length - 1
                         ? _jsx(Button, { title: "Siguiente \u203A", onPress: () => save({ step: p.step + 1, done: p.done.includes(p.step) ? p.done : [...p.done, p.step] }) })
                         : _jsx(Button, { title: "Termin\u00E9 de cocinar", onPress: () => setPhase('confirmar') })] }), _jsx(Body, { small: true, muted: true, children: "Con la pantalla bloqueada el temporizador sigue contando, pero el aviso suena reci\u00E9n al volver a la app." })] }));
 }
@@ -107,7 +107,12 @@ function ConfirmUsage({ recipeId, mealId, scale, onDone }) {
     async function confirm() {
         setBusy(true);
         let res;
-        await commit(async (r) => { res = await r.confirmCooked(meal?.id ?? null, usages.filter((u) => u.qty > 0), data.ingredients); });
+        await commit(async (r) => {
+            res = await r.confirmCooked(meal?.id ?? null, usages.filter((u) => u.qty > 0), data.ingredients);
+            const extra = Object.values(meal?.extraPortions ?? {}).reduce((a, b) => a + b, 0);
+            if (meal && extra > 0)
+                await r.addLeftover({ recipeId: recipe.id, plannedMealId: meal.id, description: `${recipe.name} — almuerzo de mañana`, portions: Math.round(extra * 10) / 10, location: 'heladera' });
+        });
         setBusy(false);
         if (res?.shortfalls.length)
             sheet('Atención', `No había suficiente stock registrado de: ${res.shortfalls.map((s) => data.ingredients.get(s.ingredientId)?.name).join(', ')}. Se descontó lo disponible.`, [{ text: 'OK', onPress: () => onDone(res.operationId) }]);

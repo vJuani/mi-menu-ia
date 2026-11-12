@@ -7,6 +7,8 @@ export function baseUnitFor(ing) {
     return toBase(1, ing.defaultUnit).unit;
 }
 export function needsForMeal(meal, recipe, members, ingredients) {
+    if (meal.leftoverOf)
+        return []; // sobras: lo que se usa ya se cocinó (y compró) en la cena
     const acc = new Map();
     const add = (id, qty, unit) => {
         const ing = ingredients.get(id);
@@ -19,7 +21,7 @@ export function needsForMeal(meal, recipe, members, ingredients) {
         acc.set(id, (acc.get(id) ?? 0) + q);
     };
     for (const m of members.filter((x) => meal.memberIds.includes(x.id))) {
-        const portion = meal.portionsByMember[m.id] ?? 1;
+        const portion = (meal.portionsByMember[m.id] ?? 1) + (meal.extraPortions?.[m.id] ?? 0);
         if (m.kind === 'bebe') {
             for (const ri of recipe.ingredients) {
                 if (ri.optional || ri.addedAfterBabySplit)

@@ -119,6 +119,15 @@ ALTER TABLE recipes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE recipes ADD COLUMN updated_at TEXT;
 `,
     },
+    {
+        version: 4,
+        name: 'almuerzo de sobras de la cena',
+        sql: `
+ALTER TABLE planned_meals ADD COLUMN leftover_of TEXT;
+ALTER TABLE planned_meals ADD COLUMN extra_portions_json TEXT NOT NULL DEFAULT '{}';
+CREATE INDEX idx_meals_leftover ON planned_meals(leftover_of);
+`,
+    },
 ];
 export const SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 export async function migrate(db) {

@@ -25,6 +25,12 @@ export function Plan() {
         alertMsg('Plan actualizado', `${fresh.length} comidas agregadas. El inventario no se modifica hasta que cocines.`);
     }
     function mealMenu(meal, name) {
+        if (meal.leftoverOf) {
+            return sheet(name, 'Almuerzo con las sobras de la cena anterior. Para cambiarlo, cambiá esa cena.', [
+                { text: 'Ver receta', onPress: () => go(`receta/${meal.recipeId}`, { mealId: meal.id }) },
+                { text: 'Ir a la cena', onPress: () => go(`receta/${meal.recipeId}`, { mealId: meal.leftoverOf }) },
+            ]);
+        }
         sheet(name, SLOT_LABEL[meal.slot], [
             { text: 'Ver receta', onPress: () => go(`receta/${meal.recipeId}`, { mealId: meal.id }) },
             { text: meal.forOffice ? 'Quitar vianda' : 'Marcar como vianda', onPress: () => commit((r) => r.saveMeal({ ...meal, forOffice: !meal.forOffice || undefined })) },
@@ -33,11 +39,14 @@ export function Plan() {
         ]);
     }
     return (_jsxs(Screen, { children: [_jsxs(Row, { between: true, children: [_jsx("button", { class: "link big", onClick: () => shift(-1), children: "\u2039" }), _jsx(Body, { bold: true, children: view === 'semana' ? `${dayLabel(start, { day: 'numeric', month: 'short' })} – ${dayLabel(addDays(start, 6), { day: 'numeric', month: 'short' })}` : dayLabel(day, { weekday: 'long', day: 'numeric', month: 'long' }) }), _jsx("button", { class: "link big", onClick: () => shift(1), children: "\u203A" })] }), _jsxs("div", { class: "grid2", children: [_jsx(Button, { small: true, kind: view === 'semana' ? 'primary' : 'secondary', title: "Semana", onPress: () => setView('semana') }), _jsx(Button, { small: true, kind: view === 'dia' ? 'primary' : 'secondary', title: "D\u00EDa", onPress: () => setView('dia') })] }), days.map((date) => (_jsxs(Card, { tone: date === todayISO ? 'primary' : undefined, children: [_jsx("button", { class: "link bold", onClick: () => { setDay(date); setView('dia'); }, children: dayLabel(date, { weekday: 'long', day: 'numeric' }) }), SLOTS.map((slot) => {
-                        const meal = data.meals.find((m) => m.date === date && m.slot === slot);
-                        const r = meal ? data.recipes.get(meal.recipeId) : undefined;
-                        if (!meal || !r)
+                        const slotMeals = data.meals.filter((m) => m.date === date && m.slot === slot && data.recipes.get(m.recipeId));
+                        if (!slotMeals.length)
                             return _jsxs("div", { class: "plan-slot empty", onClick: () => go('cambiar/nuevo', { date, slot }), children: [_jsx("span", { class: "muted small", children: SLOT_LABEL[slot] }), _jsx("span", { class: "muted small", children: "\uFF0B agregar" })] });
-                        return (_jsxs("div", { class: "plan-slot", onClick: () => mealMenu(meal, r.name), children: [_jsx(DishImage, { recipe: r, size: 40 }), _jsxs("div", { class: "grow", children: [_jsxs(Body, { small: true, muted: true, children: [SLOT_LABEL[slot], meal.forOffice ? ' · 🥡' : '', meal.status !== 'planificada' ? ` · ${meal.status}` : ''] }), _jsx(Body, { children: r.name })] })] }));
+                        return slotMeals.map((meal) => {
+                            const r = data.recipes.get(meal.recipeId);
+                            const who = meal.memberIds.length < data.members.filter((m) => m.kind === 'adulto').length ? ` · ${meal.memberIds.map((id) => data.members.find((m) => m.id === id)?.shortName ?? id).join(', ')}` : '';
+                            return (_jsxs("div", { class: "plan-slot", onClick: () => mealMenu(meal, r.name), children: [_jsx(DishImage, { recipe: r, size: 40 }), _jsxs("div", { class: "grow", children: [_jsxs(Body, { small: true, muted: true, children: [SLOT_LABEL[slot], who, meal.leftoverOf ? ' · 🥡 sobras' : meal.forOffice ? ' · 🥡' : '', meal.extraPortions ? ' · cociná el doble' : '', meal.status !== 'planificada' ? ` · ${meal.status}` : ''] }), _jsx(Body, { children: r.name })] })] }));
+                        });
                     })] }))), _jsx(Button, { title: "Completar huecos con lo que tengo", onPress: fillEmpty })] }));
 }
 export function Cambiar({ mealId, date, slot }) {

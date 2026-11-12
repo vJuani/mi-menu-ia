@@ -1,7 +1,8 @@
-// Service worker: guarda la app para usarla sin conexión. Versión 0867269c6c
-const CACHE = 'mimenu-0867269c6c';
+// Service worker: guarda la app para usarla sin conexión. Versión a1423da075
+const CACHE = 'mimenu-a1423da075';
 const FILES = [
   './',
+  "./app/src/art/dishArt.js",
   "./app/src/config/app.js",
   "./app/src/data/backup.js",
   "./app/src/data/catalog.js",
@@ -13,6 +14,7 @@ const FILES = [
   "./app/src/domain/assistant.js",
   "./app/src/domain/babySafety.js",
   "./app/src/domain/inventory.js",
+  "./app/src/domain/leftovers.js",
   "./app/src/domain/nutrition.js",
   "./app/src/domain/planner.js",
   "./app/src/domain/progress.js",
