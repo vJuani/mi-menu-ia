@@ -1,0 +1,8 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler", "strict": true,
+    "noEmit": true, "allowImportingTsExtensions": true, "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true, "skipLibCheck": true, "types": [], "lib": ["ES2022", "DOM"]
+  },
+  "include": ["src/domain", "src/data/catalog.ts", "src/data/repo.ts", "src/data/seed.ts", "src/data/backup.ts", "src/data/migrations.ts", "src/data/driver.ts"]
+}

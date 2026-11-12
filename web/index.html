@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Mi Menú IA</title>
+  <meta name="description" content="Tu asistente de alimentación familiar" />
+  <meta name="theme-color" content="#F7F5F0" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#111513" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Mi Menú" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="format-detection" content="telephone=no" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+  <link rel="icon" type="image/png" href="./icons/icon-192.png" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./styles.css" />
+  <script type="importmap">
+    { "imports": {
+      "preact": "./vendor/preact.mjs",
+      "preact/hooks": "./vendor/preact-hooks.mjs",
+      "preact/jsx-runtime": "./vendor/preact-jsx-runtime.mjs"
+    } }
+  </script>
+  <script src="./vendor/sql-wasm.js"></script>
+</head>
+<body>
+  <div id="app"><div class="boot">👨‍🍳<br /><span>Cargando…</span></div></div>
+  <div id="install-hint" hidden>
+    <b>Instalala en tu inicio:</b> tocá <span class="share-ico">⬆︎</span> Compartir y después <b>“Agregar a inicio”</b>.
+    <button onclick="this.parentElement.hidden=true;localStorage.setItem('hint-dismissed','1')">✕</button>
+  </div>
+  <script>
+    (function () {
+      var standalone = window.navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+      var dismissed = false; try { dismissed = localStorage.getItem('hint-dismissed') === '1'; } catch (e) {}
+      if (!standalone && !dismissed) document.getElementById('install-hint').hidden = false;
+    })();
+  </script>
+  <script type="module" src="./app/web/src/main.js"></script>
+</body>
+</html>

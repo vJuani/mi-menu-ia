@@ -1,0 +1,62 @@
+{
+  "expo": {
+    "name": "Mi Menú IA",
+    "slug": "mi-menu-ia",
+    "scheme": "mimenuia",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "bundleIdentifier": "com.personal.mimenuia",
+      "supportsTablet": false,
+      "infoPlist": {
+        "CFBundleDevelopmentRegion": "es_AR",
+        "NSCameraUsageDescription": "Usamos la cámara para escanear códigos de barras y fotografiar productos de tu inventario.",
+        "NSPhotoLibraryUsageDescription": "Elegí fotos de tus platos para tus recetas.",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "icon": "./assets/icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#F7F5F0",
+          "dark": {
+            "backgroundColor": "#111513"
+          }
+        }
+      ],
+      "expo-sqlite",
+      [
+        "expo-notifications",
+        {
+          "enableBackgroundRemoteNotifications": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Elegí fotos de tus platos para tus recetas.",
+          "cameraPermission": "Sacá fotos de tus platos para tus recetas."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Usamos la cámara para escanear códigos de barras y fotografiar productos de tu inventario.",
+          "recordAudioAndroid": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "icon": "./assets/icon.png"
+  }
+}

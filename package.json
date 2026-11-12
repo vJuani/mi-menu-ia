@@ -1,0 +1,23 @@
+{
+  "name": "mi-menu-ia",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "setup": "npm install && npx expo install expo-router expo-sqlite expo-notifications expo-camera expo-image-picker expo-keep-awake expo-file-system expo-sharing expo-document-picker expo-status-bar expo-splash-screen expo-linking expo-constants react-native-safe-area-context react-native-screens && npx expo install --dev typescript @types/react",
+    "start": "expo start",
+    "ios": "expo run:ios",
+    "ios:device": "expo run:ios --device",
+    "test": "node --test --disable-warning=ExperimentalWarning --disable-warning=MODULE_TYPELESS_PACKAGE_JSON tests/*.test.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "typecheck:core": "tsc -p tsconfig.core.json",
+    "build:ios:preview": "eas build --platform ios --profile preview",
+    "build:ios:dev": "eas build --platform ios --profile development"
+  },
+  "dependencies": {
+    "expo": "~58.0.0"
+  },
+  "engines": {
+    "node": ">=22.6"
+  }
+}
